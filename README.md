@@ -10,7 +10,8 @@ How to set it up on your machine
 On Windows:
 -----------
    Open Git Bash in "scripts/" and type `./SETUP_dev_win.sh`, then follow the instructions.
-   This will install SDL and OpenEXR in a SDK/ subdirectory of the project, copy SDL.dll to this directory, and copy the project files from the versioned templates to a local, untracked copy.
+   This will install SDL and OpenEXR in a SDK/ subdirectory of the project, copy SDL.dll to this directory, and copy the project files from the versioned templates to a local, untracked copy. Finally change the `<WindowsTargetPlatformVersion>` property in fray.vcxproj to your current Windows SDK version (Visual Studio/Project/Retarget solution).
+Also always build in Release mode.
 
 On Linux and Mac OS X:
 ----------------------
