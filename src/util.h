@@ -33,11 +33,29 @@
 // get the count (number of elements of some array). E.g. "int a[8]; int b[11][2]; COUNT_OF(a) = 8; COUNT_OF(b) = 11"
 #define COUNT_OF(someArray) (int(sizeof(someArray) / sizeof(someArray[0])))
 
+#define eps 0.00001
+
 inline double signOf(double x) { return x > 0 ? +1 : -1; }
 inline double sqr(double a) { return a * a; }
 inline double toRadians(double angle) { return angle / 180.0 * PI; }
 inline double toDegrees(double angle_rad) { return angle_rad / PI * 180.0; }
 inline int nearestInt(float x) { return (int) floor(x + 0.5f); }
+
+static int toInt(const std::string& s)
+{
+	if (s.empty()) return 0;
+	int x;
+	if (1 == sscanf(s.c_str(), "%d", &x)) return x;
+	return 0;
+}
+
+static double toDouble(const std::string& s)
+{
+	if (s.empty()) return 0;
+	double x;
+	if (1 == sscanf(s.c_str(), "%lf", &x)) return x;
+	return 0;
+}
 
 std::string upCaseString(std::string s); //!< returns the string in UPPERCASE
 std::string extensionUpper(const char* fileName); //!< Given a filename, return its extension in UPPERCASE

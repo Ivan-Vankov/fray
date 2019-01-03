@@ -23,8 +23,8 @@ PointLight {
 // (to enable the spherical lens camera (which introduces heavy spherical abberation)), replace "Camera" with "SphericalLensCamera"
 
 Camera camera {
-	position      (120, 22, 60)
-	yaw           11.46
+	position      (110, 6, 60)
+	yaw           0
 	pitch        -15
 	roll          0.0
 	fov           90
@@ -60,9 +60,18 @@ CheckerTexture checker {
 	scaling 0.75
 }
 
+BitmapTexture wood_texture {
+	file "texture/wood.bmp"
+}
+
+Lambert woodFlat {
+	color (1, 1, 1)
+	texture wood_texture
+}
+
 Lambert floorShader {
 	color (1, 1, 1)
-	texture  checker
+	texture checker
 }
 
 // 3. A floor node, using a plane as a geometry, and a flat shader with a checker texture
@@ -168,6 +177,41 @@ Node ball3 {
 	translate (126.2, 12.5, 79.5)
 }
 */
+
+Cone cone {
+	k 1
+	n 1
+	lowerBound 0
+	higherBound 10
+}
+/*
+Node cone1 {
+	geometry cone
+	shader teapot_lambert
+	translate (120, 10, 80)
+}
+*/
+
+SOR sor1geom {
+	file "sor/tree.sor"
+}
+
+SOR sor2geom {
+	file "sor/bottle.sor"
+}
+
+Node sor1 {
+	geometry sor1geom
+	shader flat
+	translate (120, 0, 80)
+}
+
+Node sor2 {
+	geometry sor2geom
+	shader white_flat
+	translate (100, 0, 80)
+}
+/*
 Node wineglass {
 	geometry wineglass
 	shader	white_flat
@@ -194,7 +238,7 @@ Node teapotNode {
 	scale      (7.5, 7.5, 7.5)
 }
 
-
+*/
 
 // 5. The cubemap environment:
 CubemapEnvironment environment {

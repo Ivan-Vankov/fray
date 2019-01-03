@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009-2018 by Veselin Georgiev, Slavomir Kaslev,         *
- *                              Deyan Hadzhiev et al                       *
+ *                              Deyan Hadzhiev, Ivan Vankov et al          *
  *   admin@raytracing-bg.net                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -28,6 +28,7 @@
 #include <functional>
 #include "matrix.h"
 #include "scene.h"
+#include <vector>
 
 class Geometry;
 struct IntersectionInfo {
@@ -83,6 +84,55 @@ public:
 		pb.getDoubleProp("R", &R);
 	}
 	
+	bool intersect(const Ray& ray, IntersectionInfo& info) override;
+};
+
+class Cone : public Geometry {
+	void copyFrom(const Cone& other);
+public:
+	Vector O = Vector(0, 0, 0);
+	// f(x)=x*k+n
+	double k = 1, n = 0;
+	double lowerBound = 0, higherBound = 100;
+
+	Cone() {}
+
+	Cone(const Vector& position, double k, double n, double lowerBound = 0, double higherBound = 100);
+	Cone(const Cone& other);
+	Cone& operator=(const Cone& other);
+
+	void fillProperties(ParsedBlock& pb)
+	{
+		pb.getVectorProp("O", &O);
+		pb.getDoubleProp("k", &k);
+		pb.getDoubleProp("n", &n);
+		pb.getDoubleProp("lowerBound", &lowerBound);
+		pb.getDoubleProp("higherBound", &higherBound);
+	}
+
+	bool intersect(const Ray& ray, IntersectionInfo& info) override;
+};
+
+class SOR : public Geometry {
+private:
+	void conesFromCurve(const Vector& origin, const std::vector<std::pair<double, double>>& curve);
+
+	void loadCones(const char* fileName);
+
+	std::vector<Cone> cones;
+public:
+	SOR() {}
+
+	SOR(const Vector& origin, const std::vector<std::pair<double, double>>& curve);
+
+	void fillProperties(ParsedBlock& pb)
+	{
+		char fileName[_MAX_PATH];
+		pb.requiredProp("file");
+		pb.getFilenameProp("file", fileName);
+		loadCones(fileName);
+	}
+
 	bool intersect(const Ray& ray, IntersectionInfo& info) override;
 };
 

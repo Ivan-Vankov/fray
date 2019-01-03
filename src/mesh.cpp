@@ -164,22 +164,6 @@ bool Mesh::intersect(const Ray& _ray, IntersectionInfo& info)
 	return found;
 }
 
-static int toInt(const string& s)
-{
-	if (s.empty()) return 0;
-	int x;
-	if (1 == sscanf(s.c_str(), "%d", &x)) return x;
-	return 0;
-}
-
-static double toDouble(const string& s)
-{
-	if (s.empty()) return 0;
-	double x;
-	if (1 == sscanf(s.c_str(), "%lf", &x)) return x;
-	return 0;
-}
-
 static void parseTrio(string s, int& vertex, int& uv, int& normal)
 {
 	vector<string> items = split(s, '/');

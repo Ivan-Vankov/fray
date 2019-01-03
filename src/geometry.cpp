@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2009-2018 by Veselin Georgiev, Slavomir Kaslev,         *
- *                              Deyan Hadzhiev et al                       *
+ *                              Deyan Hadzhiev, Ivan Vankov et al          *
  *   admin@raytracing-bg.net                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -25,6 +25,7 @@
 #include "geometry.h"
 #include "util.h"
 #include <algorithm>
+#include <fstream>
 using namespace std;
 
 bool Plane::intersect(const Ray& ray, IntersectionInfo& info)
@@ -81,6 +82,165 @@ bool Sphere::intersect(const Ray& ray, IntersectionInfo& info)
 	info.geom = this;
 	return true;
 }
+
+void Cone::copyFrom(const Cone& other) {
+	O = other.O;
+	k = other.k;
+	n = other.n;
+	lowerBound = other.lowerBound;
+	higherBound = other.higherBound;
+}	
+
+Cone::Cone(const Vector& position, double k, double n, double lowerBound, double higherBound) {
+	O = position;
+	this->k = k;
+	this->n = n;
+	this->lowerBound = lowerBound;
+	this->higherBound = higherBound;
+}
+
+Cone::Cone(const Cone& other) {
+	copyFrom(other);
+}
+
+Cone& Cone::operator=(const Cone& other) {
+	if (this != &other) {
+		copyFrom(other);
+	}
+	return *this;
+}
+
+bool Cone::intersect(const Ray& ray, IntersectionInfo& info) {
+	//// p^2*a + 2*p*b + c = 0
+	//// a = dx^2 + dz^2 + dy^2*k^2
+	//// b = dx*(Rx - Ox) + dz*(Rz - Oz) + 
+	////     dy*k*(Ry*k + n)
+	//// c = Rx^2-2*Rx*Ox+Ox^2 +
+	////	 Rz^2-2*Rz*Oz+Oz^2 +
+	////     Ry^2*k^2+2*Ry*k*n+n^2
+
+	double dx = ray.dir.x;
+	double dy = ray.dir.y;
+	double dz = ray.dir.z;
+
+	double Rx = ray.start.x;
+	double Ry = ray.start.y;
+	double Rz = ray.start.z;
+
+	double a = dx * dx + dz * dz - dy * dy * k * k;
+	double b = dx * (Rx - O.x) +
+               dz * (Rz - O.z) -
+               dy * k * (Ry * k + n);
+	double c = Rx * Rx - 2 * Rx * O.x + O.x * O.x +
+               Rz * Rz - 2 * Rz * O.z + O.z * O.z -
+               (Ry * Ry * k * k + 2 * Ry * k * n + n * n);
+
+	double disc = b * b - a * c;
+	if (disc < 0) { return false; }
+
+	double sqrtDisc = sqrt(disc);
+	double p1 = (-b + sqrtDisc) / a;
+	double p2 = (-b - sqrtDisc) / a;
+
+	double smaller = min(p1, p2);
+	double larger = max(p1, p2);
+
+	if (larger < 0) { return false; }
+	double dist = (smaller >= 0) ? smaller : larger;
+
+	Vector ip = ray.start + ray.dir * dist;
+
+	if (ip.y > higherBound || ip.y < lowerBound) {
+		return false;
+	}
+
+	info.ip = ip;
+	info.dist = dist;
+	
+	if (k < eps && k > -eps || 
+		ip.y < eps && ip.y > -eps) {
+		info.norm = Vector(ip.x, 0, ip.z);
+	}
+	else {
+		double ipLen = ip.length();
+		double h = sqrt(ipLen * ipLen - ip.y * ip.y);
+		double nOverk = fabs(n / k);
+		double p = ip.y + nOverk;
+		double m = sqrt(h * h + p * p);
+		double l = m * m / p - nOverk;
+		info.norm = info.ip - Vector(0, l, 0);;
+	}
+	info.norm.normalize();
+
+	info.u = (toDegrees(atan2(info.norm.z, info.norm.x)) + 180.0) / 360.0;
+	info.v = 1 - (toDegrees(asin(info.norm.y)) + 90) / 180.0;
+	info.geom = this;
+	return true;
+}
+
+void SOR::conesFromCurve(const Vector& origin, const std::vector<std::pair<double, double>>& curve) {
+	cones.reserve(curve.size() - 1);
+	for (size_t i = 1; i < curve.size(); ++i) {
+		// f(x) = x*k+n
+		// n = y1-x1*k
+		// k = (y2-y1)/(x2-x1)
+		// lowerBound = x1
+		// upperBound = x2
+		double x1 = curve[i - 1].first,  x2 = curve[i].first;
+		double y1 = curve[i - 1].second, y2 = curve[i].second;
+		double k = (y2 - y1) / (x2 - x1);
+		double n = y1 - x1 * k;
+		cones.push_back(Cone(origin, k, n, x1, x2));
+	}
+}
+
+void SOR::loadCones(const char* fileName) {
+	std::ifstream file(fileName);
+
+	if (!file.is_open()) {
+		fprintf(stderr, "Couldn't open .sor file");
+		return;
+	}
+	std::string line;
+	std::getline(file, line);
+	std::vector<std::string> originXYZ = tokenize(line);
+	Vector O(toDouble(originXYZ[0]), 
+             toDouble(originXYZ[1]),
+             toDouble(originXYZ[2]));
+
+	std::vector<std::string> currPair;
+	std::vector<std::pair<double, double>> curve;
+	while (std::getline(file, line)) {
+		currPair = tokenize(line);
+		curve.push_back(std::make_pair(
+			toDouble(currPair[0]), 
+			toDouble(currPair[1])));
+	}
+
+	file.close();
+
+	conesFromCurve(O, curve);
+}
+
+SOR::SOR(const Vector& origin, const std::vector<std::pair<double, double>>& curve) {
+	conesFromCurve(origin, curve);
+}
+
+bool SOR::intersect(const Ray& ray, IntersectionInfo& info) {
+	IntersectionInfo tempInfo;
+	double closestDist = DBL_MAX;
+	for (Cone cone : cones) {
+		if (cone.intersect(ray, tempInfo) && tempInfo.dist < closestDist) {
+			closestDist = tempInfo.dist;
+			info = tempInfo;
+		}
+	}
+	if (closestDist == DBL_MAX) {
+		return false;
+	}
+	return true;
+}
+
 
 void Cube::intersectCubeSide(const Ray& ray, double start, double dir, double target, const Vector& normal,
 							IntersectionInfo& info, std::function<void (const Vector&)> uv_mapping)

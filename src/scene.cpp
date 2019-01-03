@@ -45,7 +45,6 @@
 #include "sdl.h"
 #include "mesh.h"
 #include "random_generator.h"
-#include "heightfield.h"
 #include "lights.h"
 #include <assert.h>
 using std::vector;
@@ -823,6 +822,8 @@ SceneElement* DefaultSceneParser::newSceneElement(const char* className)
 	if (!strcmp(className, "GlobalSettings")) return &s->settings;
 	if (!strcmp(className, "Plane")) return new Plane;
 	if (!strcmp(className, "Sphere")) return new Sphere;
+	if (!strcmp(className, "Cone")) return new Cone;
+	if (!strcmp(className, "SOR")) return new SOR;
 	if (!strcmp(className, "Cube")) return new Cube;
 	if (!strcmp(className, "CsgPlus")) return new CsgPlus;
 	if (!strcmp(className, "CsgAnd")) return new CsgIntersect;
